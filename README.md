@@ -5,7 +5,7 @@
 Evaluating cell-type clustering algorithm’s robustness to technical artifacts via synthetic spatial transcriptomics data 
 
 
-### Team SE Palmeiras: 
+### Team SE Palmeiras
 Jamie Moore, Rafael dos Santos Peixoto, Caleb Hallinan
 
 
