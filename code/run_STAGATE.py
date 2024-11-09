@@ -9,7 +9,7 @@ memory=[1,2,3,4,5,6,7,8,9,10]
 during_time=[1,2,3,4,5,6,7,8,9,10]
 ari_list=[1,2,3,4,5,6,7,8,9,10]
 
-new_data = sc.read_h5ad(f'{datadir}/osmfish.h5ad')
+new_data = sc.read_h5ad(f'{datadir}/151673.h5ad')
 
 
 from sklearn import mixture
@@ -33,7 +33,7 @@ for i in range(10):
     start_time=time.time()
 
     
-    adata = sc.read_h5ad(f'{datadir}/osmfish.h5ad')
+    adata = sc.read_h5ad(f'{datadir}/151673.h5ad')
     print(adata)
     
     
@@ -71,7 +71,7 @@ for i in range(10):
     # adata = mclust_P(adata, used_obsm='STAGATE', num_cluster=7))
     
     obs_df = adata.obs.dropna()
-    ari = adjusted_rand_score(obs_df['mclust'], obs_df['Region'])
+    ari = adjusted_rand_score(obs_df['mclust'], obs_df['sce.layer_guess'])
     ari_list[i]=ari
 
     end_time=time.time()
@@ -91,3 +91,6 @@ for i in range(10):
     new_data.obs['pred_{}'.format(i+1)]=adata.obs['mclust']
 
 
+# plot the results
+sc.pl.spatial(new_data, color=['pred_10'])
+sc.pl.spatial(new_data, color=['sce.layer_guess'])

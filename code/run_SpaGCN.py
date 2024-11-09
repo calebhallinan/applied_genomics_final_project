@@ -28,7 +28,7 @@ ari_list=[1,2,3,4,5,6,7,8,9,10]
 import STAGATE_pyG.STAGATE_pyG.STAGATE as stg
 
 
-new_data = sc.read_h5ad(f'{datadir}/osmfish.h5ad')
+new_data = sc.read_h5ad(f'{datadir}151673.h5ad')
 
 for j in range(10):
 
@@ -38,7 +38,7 @@ for j in range(10):
     tracemalloc.start()  
     start_time=time.time()
 
-    adata = sc.read_h5ad(f'{datadir}/osmfish.h5ad')
+    adata = sc.read_h5ad(f'{datadir}/151673.h5ad')
     
     adata.var_names=adata.var.index.astype("str")
     adata.var_names_make_unique()
@@ -75,7 +75,7 @@ for j in range(10):
     #Set seed
     r_seed=t_seed=n_seed=100
     #Seaech for suitable resolution
-    res=spg.search_res(adata, adj, l, n_clusters, start=0.7, step=0.1, tol=5e-3, lr=0.05, max_epochs=20, r_seed=r_seed, t_seed=t_seed, n_seed=n_seed,num_pcs=50)
+    res=spg.search_res(adata, adj, l, n_clusters, start=0.7, step=0.1, tol=5e-3, lr=0.05, max_epochs=20, r_seed=r_seed, t_seed=t_seed, n_seed=n_seed)
 
     #run SpaGCN
     clf=spg.SpaGCN()
@@ -93,7 +93,7 @@ for j in range(10):
 
     from sklearn import metrics
     obs_df = adata.obs.dropna()
-    ari = metrics.adjusted_rand_score(obs_df['pred'], obs_df['Region'])
+    ari = metrics.adjusted_rand_score(obs_df['pred'], obs_df['sce.layer_guess'])
    
     ari_list[j]=ari
 
@@ -113,3 +113,7 @@ for j in range(10):
 
 
     new_data.obs['pred_{}'.format(j+1)]=adata.obs['pred']
+
+# plot the results
+sc.pl.spatial(new_data, color=['pred_10'])
+sc.pl.spatial(new_data, color=['sce.layer_guess'])

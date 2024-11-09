@@ -11,7 +11,7 @@ memory=[1,2,3,4,5,6,7,8,9,10]
 during_time=[1,2,3,4,5,6,7,8,9,10]
 ari_list=[1,2,3,4,5,6,7,8,9,10]
 
-new_data = sc.read_h5ad(f'{datadir}/osmfish.h5ad')
+new_data = sc.read_h5ad(f'{datadir}/151673.h5ad')
 def res_search_fixed_clus(adata, fixed_clus_count, increment=0.02):
 
     for res in sorted(list(np.arange(0.2, 2.5, increment)), reverse=True):
@@ -32,7 +32,7 @@ for i in range(10):
     tracemalloc.start()
     start_time=time.time()
  
-    adata = sc.read_h5ad(f'{datadir}/osmfish.h5ad')
+    adata = sc.read_h5ad(f'{datadir}/151673.h5ad')
     
     
     n_clusters=11    #according own dataset
@@ -43,7 +43,7 @@ for i in range(10):
     sc.tl.leiden(adata, key_added="leiden", resolution=eval_resolution)
   
     obs_df = adata.obs.dropna()
-    ari = metrics.adjusted_rand_score(obs_df['Region'], obs_df['leiden'])
+    ari = metrics.adjusted_rand_score(obs_df['sce.layer_guess'], obs_df['leiden'])
     ari_list[i]=ari
 
     end_time=time.time()
@@ -63,8 +63,6 @@ for i in range(10):
 
     new_data.obs['pred_{}'.format(i+1)]=adata.obs['leiden']
 
-# result_path='./'
-# new_data.uns['time']=during_time
-# new_data.uns['memory']=memory
-# new_data.uns['ari']=ari_list
-# new_data.write(f'{result_path}/Leiden_osmfish.h5ad')
+# plot the results
+sc.pl.spatial(new_data, color=['pred_10'])
+sc.pl.spatial(new_data, color=['sce.layer_guess'])
