@@ -17,12 +17,16 @@ import SpaGCN as spg
 import cv2
 
 # NOTE rn doesn't work bc I cant lower the PCs from 50 to 30, but should work for new data
-
+# reference: https://github.com/jianhuupenn/SpaGCN/blob/master/SpaGCN_package/SpaGCN/SpaGCN.py
+# https://github.com/zhaofangyuan98/SDMBench/blob/main/SpatialClustering/SpaGCN_ImagingBased.py
 
 datadir = '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/data/'
 memory=[1,2,3,4,5,6,7,8,9,10]
 during_time=[1,2,3,4,5,6,7,8,9,10]
 ari_list=[1,2,3,4,5,6,7,8,9,10]
+
+import STAGATE_pyG.STAGATE_pyG.STAGATE as stg
+
 
 new_data = sc.read_h5ad(f'{datadir}/osmfish.h5ad')
 
