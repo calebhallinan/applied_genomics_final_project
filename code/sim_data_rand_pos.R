@@ -1,5 +1,8 @@
 library(Seurat)
 library(tidyverse)
+library(sf)
+set.seed(42)
+
 
 
 # Read data ---------------------------------------------------------------
@@ -101,8 +104,9 @@ sc_cells <- colnames(sc_mtx)
 cells <- sample(sc_cells, sub_srt_ncell)
 mtx <- sc_mtx[, cells]
 ## save mtx
-rhdf5::h5write(mtx, 'sim_data/sc_srt_mtx.h5', 'mtx')
-# write.csv(mtx, 'sim_data/sc_srt_mtx.csv')
+scrattch.io::write_dgCMatrix_h5(mtx, cols_are = 'cell_names', 
+                                'sim_data/mtx.h5', gene_ids = NULL)
+# write.csv(mtx, 'sim_data/mtx.csv')
 
 ## add cell names from the sc data to the srt metadata in order by area
 meta <- sub_srt_meta %>% 
@@ -111,6 +115,44 @@ meta <- sub_srt_meta %>%
 write.csv(meta, 'sim_data/sc_srt_meta.csv')
 
 
+
+## Filter by srt genes ---------------------------------------------------
+
+srt_genes <- rownames(srt_mtx)
+sc_genes <- rownames(sc_mtx)
+common_genes <- intersect(srt_genes, sc_genes)
+
+filtered_srt_mtx <- mtx[common_genes, ]
+scrattch.io::write_dgCMatrix_h5(filtered_srt_mtx, cols_are = 'cell_names', 
+                                'sim_data/filtered_srt_mtx.h5')
+
+
 ## Create cell boundaries ------------------------------------------------
 
+## create circles representing the cell boundaries
+circles <- lapply(1:dim(meta)[1], 
+                  FUN = function(i) {
+                    cell <- meta[i, ]
+                    st_buffer(st_point(c(cell$x, cell$y)), 
+                              dist = sqrt(cell$area / pi))
+                  })
+meta <- meta %>% 
+  mutate(boundary = circles)
 
+
+## Simulate diffusion ----------------------------------------------------
+
+## create df with transcript coordinates represented by the cell center
+transcript_list <- list()
+## for every cell
+for (c in 1:dim(meta)[1]) {
+  cell <- meta[i, 'cell']
+  ## get expressed transcripts
+  ts <- which(mtx[, cell] > 0)
+  for (t in 1:dim(mtx)[1]) {
+    
+    append(transcript_list, c)
+  }
+}
+
+  
