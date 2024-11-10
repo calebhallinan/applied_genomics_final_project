@@ -1,6 +1,7 @@
 library(Seurat)
 library(tidyverse)
 library(sf)
+library(anndata)
 set.seed(42)
 
 
@@ -104,9 +105,11 @@ sc_cells <- colnames(sc_mtx)
 cells <- sample(sc_cells, sub_srt_ncell)
 mtx <- sc_mtx[, cells]
 ## save mtx
-scrattch.io::write_dgCMatrix_h5(mtx, cols_are = 'cell_names', 
-                                'sim_data/mtx.h5', gene_ids = NULL)
-# write.csv(mtx, 'sim_data/mtx.csv')
+# adata <- AnnData(X = mtx, 
+#                  obs = data.frame(cell_id = colnames(mtx)), 
+#                  var = data.frame(gene_id = rownames(mtx)))
+# write_h5ad(ad, "sim_data/ad.h5ad")
+saveRDS(mtx, 'sim_data/mtx.RDS')
 
 ## add cell names from the sc data to the srt metadata in order by area
 meta <- sub_srt_meta %>% 
@@ -121,10 +124,7 @@ write.csv(meta, 'sim_data/sc_srt_meta.csv')
 srt_genes <- rownames(srt_mtx)
 sc_genes <- rownames(sc_mtx)
 common_genes <- intersect(srt_genes, sc_genes)
-
-filtered_srt_mtx <- mtx[common_genes, ]
-scrattch.io::write_dgCMatrix_h5(filtered_srt_mtx, cols_are = 'cell_names', 
-                                'sim_data/filtered_srt_mtx.h5')
+saveRDS(filtered_srt_mtx, 'sim_data/filtered_srt_mtx.RDS')
 
 
 ## Create cell boundaries ------------------------------------------------
