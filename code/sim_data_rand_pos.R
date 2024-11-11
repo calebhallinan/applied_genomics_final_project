@@ -147,7 +147,7 @@ ggplot(data = circles_sf) +
   labs(title = "Cell areas")
 ## some cells overlap
 
-## Simulate diffusion ----------------------------------------------------
+## Simulate diffusion 10 ----------------------------------------------------
 
 ### Simulate transcript positions ----------------------------------------
 
@@ -243,3 +243,79 @@ max(colSums(ld10_mtx)) ## 1024
 mean(colSums(tmp)) ## 61.7611
 median(colSums(tmp)) ## 22
 max(colSums(tmp)) ## 1007
+
+
+## Simulate diffusion 20 ----------------------------------------------------
+
+### Simulate transcript positions ----------------------------------------
+
+## percentage out of the cell
+pct_out <- .2
+## distance from the cell centroid as a function of area
+min_dist <- 1.01
+max_dist <- 2
+
+## empty matrix to get the transcripts later
+ld_mtx <- sparseMatrix(dim(filtered_srt_mtx)[1], 
+                         dim(filtered_srt_mtx)[2], 
+                         x = 0)
+rownames(ld_mtx) <- rownames(filtered_srt_mtx)
+colnames(ld_mtx) <- colnames(filtered_srt_mtx)
+## create df with transcript coordinates represented by the cell center
+transcripts <- data.frame()
+## for every cell
+for (i in 1:dim(meta)[1]) {
+  print(paste(i, dim(meta)[1]))
+  cell <- meta[i, ]
+  cell_id <- cell$cell
+  ## get expressed transcripts 
+  ts <- filtered_srt_mtx[which(filtered_srt_mtx[, cell_id] > 0), cell_id]
+  ## calculate transcripts outside and inside the cell
+  ts_out <- round(ts * pct_out)
+  ts_in <- ts - ts_out
+  ## populate exp matrix with the transcripts inside the cell
+  for (ts_name in names(ts_in)) {
+    ld_mtx[ts_name, cell_id] <- ts_in[ts_name]
+  }
+  ## calculate positions of the transcripts outside
+  r <- sqrt(cell$area / pi)
+  for (ts_name in names(ts_in)) {
+    ## generate random position for transcript given cell centroid
+    ## calculate angle
+    theta <- runif(1, 0, 2*pi)
+    ## calculate distance
+    d <- runif(1, r * min_dist, r * max_dist)
+    x <- cell$x + d * cos(theta)
+    y <- cell$y + d * sin(theta)
+    ## add to dataframe
+    transcripts <- rbind(transcripts, c(ts_name, x, y, cell_id))
+  }
+}
+colnames(transcripts) <- c('gene', 'x', 'y', 'orig_cell')
+transcripts <- transcripts %>% 
+  mutate(x = as.numeric(x), y = as.numeric(y))
+
+### Reassign transcripts to cells ----------------------------------------
+
+## convert transcripts to st
+sf_transcripts <- sf::st_as_sf(transcripts, coords = c('x','y'))
+
+## for each cell, calculate intersection
+for (cell_id in meta$cell) {
+  ## get cell geometry
+  cell_geo <- circles[[cell_id]]
+  ## intersect genes with cell
+  points_within <- st_within(sf_transcripts, cell_geo, sparse = FALSE)
+  genes_in <- sf_transcripts[points_within, ]$gene
+  if (length(genes_in) > 0) {
+    print(paste(cell_id, length(genes_in)))
+    count_genes_in <- table(genes_in)
+    for (ts_name in names(count_genes_in)) {
+      ld_mtx[ts_name, cell_id] <- ld_mtx[ts_name, cell_id] + 
+        count_genes_in[ts_name]
+    }
+  }
+}
+
+## save
+saveRDS(ld_mtx, file = 'filtered_ld20_mtx.RDS')
