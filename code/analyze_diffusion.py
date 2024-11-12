@@ -48,9 +48,9 @@ adata.var = pd.DataFrame(index=range(adata.shape[1]))
 # read in RDS file
 from rds2py import read_rds
 
-ld10_d3 = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/filtered_ld10_d3_mtx.RDS')
-ld10 = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/filtered_ld10_mtx.RDS')
-ld20 = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/filtered_ld20_mtx.RDS')
+ld10_d3 = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/filtered_ld10_d3_mtx.RDS')
+ld10 = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/filtered_ld10_mtx.RDS')
+ld20 = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/filtered_ld20_mtx.RDS')
 
 # make adata objects for each
 adata_ld10_d3 = sc.AnnData(ld10_d3.T)
