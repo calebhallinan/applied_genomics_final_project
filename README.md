@@ -21,6 +21,9 @@ https://livejohnshopkins-my.sharepoint.com/:w:/g/personal/rpeixot1_jh_edu/EXEi33
 https://livejohnshopkins-my.sharepoint.com/:w:/r/personal/jmoor185_jh_edu/_layouts/15/Doc.aspx?sourcedoc=%7B24301B63-B01E-417B-8060-F186780918E2%7D&file=mike_draft_2.docx&wdLOR=cEC190E0E-37D7-3848-A9AB-E242EDBA6405&fromShare=true&action=default&mobileredirect=true
 
 
+### Final Slides Presentation
+https://docs.google.com/presentation/d/1xHn8lD2IeGnZLf1OxqjIiGJ5RSQAcfds1KkLLAa-stY/edit?usp=sharing
+
 ### Misc
 - Mid project report due November 11th
 - 
