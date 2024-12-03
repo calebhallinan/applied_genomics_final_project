@@ -13,6 +13,8 @@ import seaborn as sns
 from rds2py import read_rds
 # import kmeans
 from sklearn.cluster import KMeans
+from pathlib import Path
+
 
 ############################################################################################################
 
@@ -29,6 +31,12 @@ gt_matrix = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_
 adata_gt = sc.AnnData(gt_matrix.T)
 adata_gt.obs = metadata.reset_index(drop=True)
 adata_gt.var = pd.DataFrame(index=range(adata_gt.shape[1]))
+# normalize and cluster
+sc.pp.log1p(adata_gt)
+sc.pp.neighbors(adata_gt)
+sc.tl.leiden(adata_gt)
+kmeans = KMeans(n_clusters=25, random_state=0).fit(adata_gt.X)
+adata_gt.obs['kmeans'] = kmeans.labels_
 
 
 ############################################################################################################
@@ -36,67 +44,65 @@ adata_gt.var = pd.DataFrame(index=range(adata_gt.shape[1]))
 
 ### read in different conditions ###
 
-# read in matrices for all conditions
-ld1p1max = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p1max_parallelized.RDS')
-ld1p5max = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p5max_parallelized.RDS')
-ld2max = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_2max_parallelized.RDS')
-ld5max = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_5max_parallelized.RDS')
-ld5pct = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_5pct_parallelized.RDS')
-ld10pct = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_10pct_parallelized.RDS')
-ld20pct = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_20pct_parallelized.RDS')
-ld50pct = read_rds('/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_50pct_parallelized.RDS')
 
-# make an adata objects
-adata_ld1p1max = sc.AnnData(ld1p1max.T)
-adata_ld1p1max.obs = metadata.reset_index(drop=True)
-adata_ld1p1max.var = pd.DataFrame(index=range(adata_ld1p1max.shape[1]))
-
-adata_ld1p5max = sc.AnnData(ld1p5max.T)
-adata_ld1p5max.obs = metadata.reset_index(drop=True)
-adata_ld1p5max.var = pd.DataFrame(index=range(adata_ld1p5max.shape[1]))
-
-adata_ld2max = sc.AnnData(ld2max.T)
-adata_ld2max.obs = metadata.reset_index(drop=True)
-adata_ld2max.var = pd.DataFrame(index=range(adata_ld2max.shape[1]))
-
-adata_ld5max = sc.AnnData(ld5max.T)
-adata_ld5max.obs = metadata.reset_index(drop=True)
-adata_ld5max.var = pd.DataFrame(index=range(adata_ld5max.shape[1]))
-
-adata_ld5pct = sc.AnnData(ld5pct.T)
-adata_ld5pct.obs = metadata.reset_index(drop=True)
-adata_ld5pct.var = pd.DataFrame(index=range(adata_ld5pct.shape[1]))
-
-adata_ld10pct = sc.AnnData(ld10pct.T)
-adata_ld10pct.obs = metadata.reset_index(drop=True)
-adata_ld10pct.var = pd.DataFrame(index=range(adata_ld10pct.shape[1]))
-
-adata_ld20pct = sc.AnnData(ld20pct.T)
-adata_ld20pct.obs = metadata.reset_index(drop=True)
-adata_ld20pct.var = pd.DataFrame(index=range(adata_ld20pct.shape[1]))
-
-adata_ld50pct = sc.AnnData(ld50pct.T)
-adata_ld50pct.obs = metadata.reset_index(drop=True)
-adata_ld50pct.var = pd.DataFrame(index=range(adata_ld50pct.shape[1]))
+# get all conditions
+file_paths = [
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p1max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p01max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p05max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p2max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p3max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p4max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p5max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p6max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p7max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p8max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1p9max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_2max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_3max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_4max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_5max_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_1pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_2pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_4pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_5pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_6pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_8pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_10pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_12pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_14pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_16pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_18pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_20pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_30pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_40pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_50pct_parallelized.RDS'
+]
 
 
-############################################################################################################
 
+# Dictionary to store processed AnnData objects
+adata_dict = {}
 
-np.sum(adata_ld1p1max.X.toarray() == adata_ld5max.X.toarray()) / (adata_ld1p1max.X.toarray().shape[0] * adata_ld1p1max.X.toarray().shape[1])
-
-
-### normalize and cluster all conditions ###
-
-
-# for loop to normalize and cluster all conditions
-for adata in [adata_gt, adata_ld1p1max, adata_ld1p5max, adata_ld2max, adata_ld5max, adata_ld5pct, adata_ld10pct, adata_ld20pct, adata_ld50pct]:
+for file_path in file_paths:
+    # Generate a dynamic variable name
+    var_name = f"adata_{Path(file_path).stem.replace('ld_mtx_', '').replace('_parallelized', '')}"
+    
+    # Read data and create AnnData object
+    data = read_rds(file_path)
+    adata = sc.AnnData(data.T)
+    adata.obs = metadata.reset_index(drop=True)
+    adata.var = pd.DataFrame(index=range(data.shape[0]))
+    
+    # Preprocessing and clustering
     sc.pp.log1p(adata)
     sc.pp.neighbors(adata)
     sc.tl.leiden(adata)
     kmeans = KMeans(n_clusters=25, random_state=0).fit(adata.X)
     adata.obs['kmeans'] = kmeans.labels_
-    print("one done")
+    
+    # Save to dictionary
+    adata_dict[var_name] = adata
 
 
 ############################################################################################################
@@ -105,60 +111,98 @@ for adata in [adata_gt, adata_ld1p1max, adata_ld1p5max, adata_ld2max, adata_ld5m
 ### compare clustering results ###
 
 
-# compare clustering results
-ari_df = pd.DataFrame(columns=['ARI_leiden', "ARI_kmeans"], index=['GT', 'LD1p1max', 'LD1p5max', 'LD2max', 'LD5max', 'LD5pct', 'LD10pct', 'LD20pct', 'LD50pct'])
+# Initialize ARI DataFrame
+ari_df = pd.DataFrame(columns=['ARI_leiden', 'ARI_kmeans'], index=['GT'] + list(adata_dict.keys()))
+
+# Compute ARI for ground truth (self-comparison)
 ari_df.loc['GT', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_gt.obs['leiden'])
 ari_df.loc['GT', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_gt.obs['kmeans'])
-ari_df.loc['LD1p1max', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_ld1p1max.obs['leiden'])
-ari_df.loc['LD1p1max', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_ld1p1max.obs['kmeans'])
-ari_df.loc['LD1p5max', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_ld1p5max.obs['leiden'])
-ari_df.loc['LD1p5max', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_ld1p5max.obs['kmeans'])
-ari_df.loc['LD2max', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_ld2max.obs['leiden'])
-ari_df.loc['LD2max', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_ld2max.obs['kmeans'])
-ari_df.loc['LD5max', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_ld5max.obs['leiden'])
-ari_df.loc['LD5max', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_ld5max.obs['kmeans'])
-ari_df.loc['LD5pct', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_ld5pct.obs['leiden'])
-ari_df.loc['LD5pct', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_ld5pct.obs['kmeans'])
-ari_df.loc['LD10pct', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_ld10pct.obs['leiden'])
-ari_df.loc['LD10pct', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_ld10pct.obs['kmeans'])
-ari_df.loc['LD20pct', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_ld20pct.obs['leiden'])
-ari_df.loc['LD20pct', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_ld20pct.obs['kmeans'])
-ari_df.loc['LD50pct', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_ld50pct.obs['leiden'])
-ari_df.loc['LD50pct', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_ld50pct.obs['kmeans'])
+
+# Compute ARI for each key in the dictionary
+for condition, adata in adata_dict.items():
+    ari_df.loc[condition, 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata.obs['leiden'])
+    ari_df.loc[condition, 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata.obs['kmeans'])
+
+# Print the ARI DataFrame
 print(ari_df)
 
+# change the index to be more readable
+ari_df.index = [
+    'Ground Truth',
+    '1.1max',
+    '1.01max',
+    '1.05max',
+    '1.2max',
+    '1.3max',
+    '1.4max',
+    '1.5max',
+    '1.6max',
+    '1.7max',
+    '1.8max',
+    '1.9max',
+    '2max',
+    '3max',
+    '4max',
+    '5max',
+    '1pct',
+    '2pct',
+    '4pct',
+    '5pct',
+    '6pct',
+    '8pct',
+    '10pct',
+    '12pct',
+    '14pct',
+    '16pct',
+    '18pct',
+    '20pct',
+    '30pct',
+    '40pct',
+    '50pct'
+]
+
+# reorder to make 1p01max and 1p05 after Ground Truth
+ari_df = ari_df.reindex(['Ground Truth', '1.01max', '1.05max', '1.1max', '1.2max', '1.3max', '1.4max', '1.5max', '1.6max', 
+                         '1.7max', '1.8max', '1.9max', '2max', '3max', '4max', '5max', '1pct', '2pct', '4pct', '5pct', 
+                         '6pct', '8pct', '10pct', '12pct', '14pct', '16pct', '18pct', '20pct', '30pct', '40pct', '50pct'])
+
+# separate the ari for max and pct
+ari_df_max = ari_df.loc[ari_df.index.str.contains('max') | ari_df.index.str.contains('Truth')]
+ari_df_pct = ari_df.loc[ari_df.index.str.contains('pct') | ari_df.index.str.contains('Truth')]
 
 
-import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-from scipy.optimize import linear_sum_assignment
-
-# plot each confusion matrix
-for adata in [adata_gt, adata_ld1p1max, adata_ld1p5max, adata_ld2max, adata_ld5max, adata_ld5pct, adata_ld10pct, adata_ld20pct, adata_ld50pct]:
-    crosstab = pd.crosstab(adata_gt.obs['leiden'], adata.obs['leiden'], normalize="columns")
-    cost_matrix = crosstab.max().max() - crosstab.values
-    row_ind, col_ind = linear_sum_assignment(cost_matrix)
-    optimal_crosstab = crosstab.iloc[row_ind, :].iloc[:, col_ind]
-    sns.heatmap(optimal_crosstab, cmap='coolwarm')
-    plt.xlabel("Ground Truth Clusters")
-    plt.ylabel("Predicted Clusters")
-    plt.title("Normalized Confusion Matrix - leiden")
-    plt.show()
+############################################################################################################
 
 
+### plot ARI ###
 
-# Create subplots for side-by-side comparison
-fig, axes = plt.subplots(1, 3, figsize=(20, 6))
+# Plot ARI for leiden as a scatterplot with line connecting the points
+plt.figure(figsize=(10, 6))
+plt.scatter(ari_df_max.index, ari_df_max['ARI_leiden'], label='leiden')
+plt.plot(ari_df_max.index, ari_df_max['ARI_leiden'], linestyle='-', marker='o')
+plt.scatter(ari_df_max.index, ari_df_max['ARI_kmeans'], label='kmeans')
+plt.plot(ari_df_max.index, ari_df_max['ARI_kmeans'], linestyle='-', marker='o')
+plt.xticks(rotation=90)
+plt.xlabel('Condition')
+plt.ylabel('ARI')
+plt.title('ARI for leiden and kmeans clustering')
+plt.legend()
 
-# Plot for LD10
-crosstab = pd.crosstab(adata_ld1p1max.obs['leiden'], adata_gt.obs['leiden'], normalize="columns")
-cost_matrix = crosstab.max().max() - crosstab.values
-row_ind, col_ind = linear_sum_assignment(cost_matrix)
-optimal_crosstab = crosstab.iloc[row_ind, :].iloc[:, col_ind]
-sns.heatmap(optimal_crosstab, cmap='coolwarm', ax=axes[0], cbar=False)
-axes[0].set_xlabel("Ground Truth Clusters", fontsize=14)
-axes[0].set_ylabel("Predicted Clusters", fontsize=14)
-axes[0].set_title("Normalized Confusion Matrix - leiden (LD10)", fontsize=18)
-axes[0].tick_params(axis='both', which='major', labelsize=10)
+
+# Plot ARI for kmeans as a scatterplot with line connecting the points
+plt.figure(figsize=(10, 6))
+plt.scatter(ari_df_pct.index, ari_df_pct['ARI_leiden'], label='leiden')
+plt.plot(ari_df_pct.index, ari_df_pct['ARI_leiden'], linestyle='-', marker='o')
+plt.scatter(ari_df_pct.index, ari_df_pct['ARI_kmeans'], label='kmeans')
+plt.plot(ari_df_pct.index, ari_df_pct['ARI_kmeans'], linestyle='-', marker='o')
+plt.xticks(rotation=90)
+plt.xlabel('Condition')
+plt.ylabel('ARI')
+plt.title('ARI for leiden and kmeans clustering')
+plt.legend()
+
+
+
+############################################################################################################
+
 
