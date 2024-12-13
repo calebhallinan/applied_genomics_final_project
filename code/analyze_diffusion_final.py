@@ -12,7 +12,8 @@ import seaborn as sns
 # read in RDS file
 from rds2py import read_rds
 # import kmeans
-from sklearn.cluster import KMeans
+from sklearn.cluster import KMeans, AgglomerativeClustering
+from sklearn.mixture import GaussianMixture
 from pathlib import Path
 
 
@@ -33,10 +34,23 @@ adata_gt.obs = metadata.reset_index(drop=True)
 adata_gt.var = pd.DataFrame(index=range(adata_gt.shape[1]))
 # normalize and cluster
 sc.pp.log1p(adata_gt)
-sc.pp.neighbors(adata_gt)
+sc.tl.pca(adata_gt, n_comps=30)
+sc.pp.neighbors(adata_gt, n_neighbors=15, n_pcs=30)
 sc.tl.leiden(adata_gt)
-kmeans = KMeans(n_clusters=25, random_state=0).fit(adata_gt.X)
+# test more resolutions
+# sc.tl.leiden(adata_gt, key_added="leiden_res0_25", resolution=0.25)
+# sc.tl.leiden(adata_gt, key_added="leiden_res0_5", resolution=0.5)
+# sc.tl.leiden(adata_gt, key_added="leiden_res1", resolution=1.0)
+# sc.tl.leiden(adata_gt, key_added="leiden_res2", resolution=2.0)
+sc.tl.louvain(adata_gt)
+kmeans = KMeans(n_clusters=25, random_state=0).fit(adata_gt.obsm['X_pca'])
 adata_gt.obs['kmeans'] = kmeans.labels_
+# perform agglomerative clustering
+agglomerative = AgglomerativeClustering(n_clusters=25).fit(adata_gt.obsm['X_pca'])
+adata_gt.obs['agglomerative'] = agglomerative.labels_
+# perform GMM
+gmm = GaussianMixture(n_components=25, random_state=0).fit(adata_gt.obsm['X_pca'])
+adata_gt.obs['gmm'] = gmm.predict(adata_gt.obsm['X_pca'])
 
 
 ############################################################################################################
@@ -96,11 +110,24 @@ for file_path in file_paths:
     
     # Preprocessing and clustering
     sc.pp.log1p(adata)
-    sc.pp.neighbors(adata)
+    sc.tl.pca(adata, n_comps=30)
+    sc.pp.neighbors(adata, n_neighbors=15, n_pcs=30)
     sc.tl.leiden(adata)
-    kmeans = KMeans(n_clusters=25, random_state=0).fit(adata.X)
+    # test more resolutions
+    # sc.tl.leiden(adata, key_added="leiden_res0_25", resolution=0.25)
+    # sc.tl.leiden(adata, key_added="leiden_res0_5", resolution=0.5)
+    # sc.tl.leiden(adata, key_added="leiden_res1", resolution=1.0)
+    # sc.tl.leiden(adata, key_added="leiden_res2", resolution=2.0)
+    sc.tl.louvain(adata)
+    kmeans = KMeans(n_clusters=25, random_state=0).fit(adata.obsm['X_pca'])
     adata.obs['kmeans'] = kmeans.labels_
-    
+    # perform agglomerative clustering
+    agglomerative = AgglomerativeClustering(n_clusters=25).fit(adata.obsm['X_pca'])
+    adata.obs['agglomerative'] = agglomerative.labels_
+    # perform GMM
+    gmm = GaussianMixture(n_components=25, random_state=0).fit(adata.obsm['X_pca'])
+    adata.obs['gmm'] = gmm.predict(adata.obsm['X_pca'])
+
     # Save to dictionary
     adata_dict[var_name] = adata
 
@@ -112,19 +139,40 @@ for file_path in file_paths:
 
 
 # Initialize ARI DataFrame
-ari_df = pd.DataFrame(columns=['ARI_leiden', 'ARI_kmeans'], index=['GT'] + list(adata_dict.keys()))
+ari_df = pd.DataFrame(columns=['ARI_leiden', 'ARI_kmeans', 'ARI_louvain', 'ARI_agglomerative'], index=['GT'] + list(adata_dict.keys()))
 
 # Compute ARI for ground truth (self-comparison)
 ari_df.loc['GT', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_gt.obs['leiden'])
 ari_df.loc['GT', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_gt.obs['kmeans'])
+ari_df.loc['GT', 'ARI_louvain'] = metrics.adjusted_rand_score(adata_gt.obs['louvain'], adata_gt.obs['louvain'])
+ari_df.loc['GT', 'ARI_agglomerative'] = metrics.adjusted_rand_score(adata_gt.obs['agglomerative'], adata_gt.obs['agglomerative'])
+ari_df.loc['GT', 'ARI_gmm'] = metrics.adjusted_rand_score(adata_gt.obs['gmm'], adata_gt.obs['gmm'])
+
+# add new leiden resolutions
+# ari_df.loc['GT', 'ARI_leiden_res0_25'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res0_25'], adata_gt.obs['leiden_res0_25'])
+# ari_df.loc['GT', 'ARI_leiden_res0_5'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res0_5'], adata_gt.obs['leiden_res0_5'])
+# ari_df.loc['GT', 'ARI_leiden_res1'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res1'], adata_gt.obs['leiden_res1'])
+# ari_df.loc['GT', 'ARI_leiden_res2'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res2'], adata_gt.obs['leiden_res2'])
 
 # Compute ARI for each key in the dictionary
 for condition, adata in adata_dict.items():
     ari_df.loc[condition, 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata.obs['leiden'])
     ari_df.loc[condition, 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata.obs['kmeans'])
+    ari_df.loc[condition, 'ARI_louvain'] = metrics.adjusted_rand_score(adata_gt.obs['louvain'], adata.obs['louvain'])
+    ari_df.loc[condition, 'ARI_agglomerative'] = metrics.adjusted_rand_score(adata_gt.obs['agglomerative'], adata.obs['agglomerative'])
+    ari_df.loc[condition, 'ARI_gmm'] = metrics.adjusted_rand_score(adata_gt.obs['gmm'], adata.obs['gmm'])
+    # # add new leiden resolutions
+    # ari_df.loc[condition, 'ARI_leiden_res0_25'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res0_25'], adata.obs['leiden_res0_25'])
+    # ari_df.loc[condition, 'ARI_leiden_res0_5'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res0_5'], adata.obs['leiden_res0_5'])
+    # ari_df.loc[condition, 'ARI_leiden_res1'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res1'], adata.obs['leiden_res1'])
+    # ari_df.loc[condition, 'ARI_leiden_res2'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res2'], adata.obs['leiden_res2'])
 
 # Print the ARI DataFrame
 print(ari_df)
+
+adata_gt.obs['louvain'].value_counts()
+
+adata_dict['adata_10pct'].obs['louvain'].value_counts()
 
 # change the index to be more readable
 ari_df.index = [
@@ -173,36 +221,207 @@ ari_df_pct = ari_df.loc[ari_df.index.str.contains('pct') | ari_df.index.str.cont
 
 ############################################################################################################
 
+ari_df_max.index
+x_axis = [.9, 1.01, 1.05, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2, 2.5, 3, 3.5]
 
 ### plot ARI ###
 
 # Plot ARI for leiden as a scatterplot with line connecting the points
-plt.figure(figsize=(10, 6))
-plt.scatter(ari_df_max.index, ari_df_max['ARI_leiden'], label='leiden')
-plt.plot(ari_df_max.index, ari_df_max['ARI_leiden'], linestyle='-', marker='o')
-plt.scatter(ari_df_max.index, ari_df_max['ARI_kmeans'], label='kmeans')
-plt.plot(ari_df_max.index, ari_df_max['ARI_kmeans'], linestyle='-', marker='o')
-plt.xticks(rotation=90)
-plt.xlabel('Condition')
-plt.ylabel('ARI')
-plt.title('ARI for leiden and kmeans clustering')
-plt.legend()
+plt.figure(figsize=(14, 6))
+plt.scatter(x_axis, ari_df_max['ARI_leiden'], label='Leiden', s=100)
+plt.plot(x_axis, ari_df_max['ARI_leiden'], linestyle='-', marker='o')
+# add new leiden resolutions
+# plt.scatter(x_axis, ari_df_max['ARI_leiden_res0_25'], label='Leiden_res0_25', s=100)
+# plt.plot(x_axis, ari_df_max['ARI_leiden_res0_25'], linestyle='-', marker='o')
+# plt.scatter(x_axis, ari_df_max['ARI_leiden_res0_5'], label='Leiden_res0_5', s=100)
+# plt.plot(x_axis, ari_df_max['ARI_leiden_res0_5'], linestyle='-', marker='o')
+# plt.scatter(x_axis, ari_df_max['ARI_leiden_res1'], label='Leiden_res1', s=100)
+# plt.plot(x_axis, ari_df_max['ARI_leiden_res1'], linestyle='-', marker='o')
+# plt.scatter(x_axis, ari_df_max['ARI_leiden_res2'], label='Leiden_res2', s=100)
+# plt.plot(x_axis, ari_df_max['ARI_leiden_res2'], linestyle='-', marker='o')
+plt.scatter(x_axis, ari_df_max['ARI_kmeans'], label='K-means', s=100)
+plt.plot(x_axis, ari_df_max['ARI_kmeans'], linestyle='-', marker='o')
+plt.scatter(x_axis, ari_df_max['ARI_louvain'], label='Louvain', s=100)
+plt.plot(x_axis, ari_df_max['ARI_louvain'], linestyle='-', marker='o')
+plt.scatter(x_axis, ari_df_max['ARI_agglomerative'], label='Agglomerative', s=100)
+plt.plot(x_axis, ari_df_max['ARI_agglomerative'], linestyle='-', marker='o')
+# plt.scatter(x_axis, ari_df_max['ARI_gmm'], label='GMM', s=100)
+# plt.plot(x_axis, ari_df_max['ARI_gmm'], linestyle='-', marker='o')
+plt.xlabel('Condition', fontsize=14)
+plt.ylabel('Adjusted Rand Index (ARI)', fontsize=14) 
+plt.title('ARI for Max Distance a transcript can diffuse', fontsize=22)
+# make the legened bigger
+plt.legend(fontsize=12)
+sns.despine()
+# make size of text larger
+plt.yticks(fontsize=14)
+plt.ylim(.4,1.02)
+# change the x ticks to be ari_df_max.index
+# Set custom labels for the x-axis
+plt.xticks(ticks=x_axis, labels=ari_df_max.index, rotation=90,fontsize=12)
 
+
+
+x_axis1 = [0, 1, 2, 4, 5, 6, 8, 10, 12, 14, 16, 18, 20, 23, 26, 29]
 
 # Plot ARI for kmeans as a scatterplot with line connecting the points
-plt.figure(figsize=(10, 6))
-plt.scatter(ari_df_pct.index, ari_df_pct['ARI_leiden'], label='leiden')
-plt.plot(ari_df_pct.index, ari_df_pct['ARI_leiden'], linestyle='-', marker='o')
-plt.scatter(ari_df_pct.index, ari_df_pct['ARI_kmeans'], label='kmeans')
-plt.plot(ari_df_pct.index, ari_df_pct['ARI_kmeans'], linestyle='-', marker='o')
-plt.xticks(rotation=90)
-plt.xlabel('Condition')
-plt.ylabel('ARI')
-plt.title('ARI for leiden and kmeans clustering')
-plt.legend()
+plt.figure(figsize=(14, 6))
+plt.scatter(x_axis1, ari_df_pct['ARI_leiden'], label='Leiden', s=100)
+plt.plot(x_axis1, ari_df_pct['ARI_leiden'], linestyle='-', marker='o')
+plt.scatter(x_axis1, ari_df_pct['ARI_kmeans'], label='K-means', s=100)
+plt.plot(x_axis1, ari_df_pct['ARI_kmeans'], linestyle='-', marker='o')
+plt.scatter(x_axis1, ari_df_pct['ARI_louvain'], label='Louvain', s=100)
+plt.plot(x_axis1, ari_df_pct['ARI_louvain'], linestyle='-', marker='o')
+plt.scatter(x_axis1, ari_df_pct['ARI_agglomerative'], label='Agglomerative', s=100)
+plt.plot(x_axis1, ari_df_pct['ARI_agglomerative'], linestyle='-', marker='o')
+plt.xlabel('Condition', fontsize=14)
+plt.ylabel('Adjusted Rand Index (ARI)', fontsize=14)
+plt.title('ARI for Total Percentage of transcripts that can diffuse', fontsize=22)
+plt.legend(fontsize=12)
+sns.despine()
+# make size of text larger
+plt.yticks(fontsize=12)
+plt.ylim(.4,1.02)
+plt.xticks(ticks=x_axis1, labels=ari_df_pct.index, rotation=90,fontsize=12)
+
+
+############################################################################################################
+
+
+import pandas as pd
+import numpy as np
+from scipy.optimize import linear_sum_assignment
+import seaborn as sns
+import matplotlib.pyplot as plt
+import colorcet as cc
+
+# Extract cluster labels
+gt_clusters = adata_gt.obs['kmeans']
+other_clusters = adata_dict["adata_1pct"].obs['kmeans']
+
+# Create a contingency table
+contingency = pd.crosstab(gt_clusters, other_clusters)
+
+# Solve the assignment problem (maximize overlap, so minimize negative values)
+row_ind, col_ind = linear_sum_assignment(-contingency.values)
+
+# Create a mapping from other_clusters to gt_clusters
+cluster_mapping = {contingency.columns[col]: contingency.index[row] for row, col in zip(row_ind, col_ind)}
+
+# Map clusters in the second dataset to ground truth clusters
+adata_dict["adata_1pct"].obs['kmeans_mapped'] = adata_dict["adata_1pct"].obs['kmeans'].map(cluster_mapping).fillna(-1)
+
+# Create a shared color palette for all clusters
+all_clusters = np.union1d(adata_gt.obs['kmeans'].unique(), adata_dict["adata_1pct"].obs['kmeans_mapped'].unique())
+palette = sns.color_palette(cc.glasbey, n_colors=len(all_clusters))
+hue_mapping = {cluster: color for cluster, color in zip(all_clusters, palette)}
+
+
+
+# Plot the ground truth
+plt.figure(figsize=(12, 8))
+sns.scatterplot(
+    x=adata_gt.obs['x'],
+    y=adata_gt.obs['y'],
+    hue=adata_gt.obs['kmeans'],
+    size=adata_gt.obs["area"],
+    palette=hue_mapping
+)
+plt.title("Ground Truth")
+sns.despine()
+# Do not plot legend
+plt.legend([], [], frameon=False)
+
+# Plot the different conditions with mapped clusters
+plt.figure(figsize=(12, 8))
+sns.scatterplot(
+    x=adata_dict["adata_1pct"].obs['x'],
+    y=adata_dict["adata_1pct"].obs['y'],
+    hue=adata_dict["adata_1pct"].obs['kmeans_mapped'],
+    size=adata_dict["adata_1pct"].obs["area"],
+    palette=hue_mapping
+)
+plt.title("1pct Clusters")
+sns.despine()
+# Do not plot legend
+plt.legend([], [], frameon=False)
+plt.show()
+
+
+
+
+# Extract cluster labels
+gt_clusters = adata_gt.obs['kmeans']
+other_clusters = adata_dict["adata_50pct"].obs['kmeans']
+
+# Create a contingency table
+contingency = pd.crosstab(gt_clusters, other_clusters)
+
+# Solve the assignment problem (maximize overlap, so minimize negative values)
+row_ind, col_ind = linear_sum_assignment(-contingency.values)
+
+# Create a mapping from other_clusters to gt_clusters
+cluster_mapping = {contingency.columns[col]: contingency.index[row] for row, col in zip(row_ind, col_ind)}
+
+# Map clusters in the second dataset to ground truth clusters
+adata_dict["adata_50pct"].obs['kmeans_mapped'] = adata_dict["adata_50pct"].obs['kmeans'].map(cluster_mapping).fillna(-1)
+
+# Create a shared color palette for all clusters
+all_clusters = np.union1d(adata_gt.obs['kmeans'].unique(), adata_dict["adata_50pct"].obs['kmeans_mapped'].unique())
+palette = sns.color_palette(cc.glasbey, n_colors=len(all_clusters))
+hue_mapping = {cluster: color for cluster, color in zip(all_clusters, palette)}
+
+
+
+# Plot the different conditions with mapped clusters
+plt.figure(figsize=(12, 8))
+sns.scatterplot(
+    x=adata_dict["adata_50pct"].obs['x'],
+    y=adata_dict["adata_50pct"].obs['y'],
+    hue=adata_dict["adata_50pct"].obs['kmeans_mapped'],
+    size=adata_dict["adata_50pct"].obs["area"],
+    palette=hue_mapping
+)
+plt.title("50pct Clusters")
+sns.despine()
+# Do not plot legend
+plt.legend([], [], frameon=False)
+plt.show()
+
 
 
 
 ############################################################################################################
+
+
+# plot umap for ground truth
+sc.tl.umap(adata_gt)
+sc.tl.umap(adata_dict["adata_50pct"])
+
+# plot umap for ground truth
+sc.pl.umap(adata_gt, color='leiden', palette='tab20', title='Ground Truth with Leiden', show=False)
+# Customize the legend position
+plt.legend(
+    loc='upper center', 
+    bbox_to_anchor=(0.5, -0.05),  # Position the legend below the plot
+    ncol=4,  # Number of columns for the legend
+    title='Leiden Clusters'  # Optional: Add a title to the legend
+)
+plt.show()
+
+
+
+# plot umap for 50pct
+sc.pl.umap(adata_dict["adata_50pct"], color='leiden', palette='tab20', title='50pct with Leiden Clusters', show=False)
+# Customize the legend position
+plt.legend(
+    loc='upper center', 
+    bbox_to_anchor=(0.5, -0.05),  # Position the legend below the plot
+    ncol=4,  # Number of columns for the legend
+    title='Leiden Clusters'  # Optional: Add a title to the legend
+)
+plt.show()
+
+
 
 
