@@ -247,8 +247,8 @@ plt.scatter(x_axis, ari_df_max['ARI_agglomerative'], label='Agglomerative', s=10
 plt.plot(x_axis, ari_df_max['ARI_agglomerative'], linestyle='-', marker='o')
 # plt.scatter(x_axis, ari_df_max['ARI_gmm'], label='GMM', s=100)
 # plt.plot(x_axis, ari_df_max['ARI_gmm'], linestyle='-', marker='o')
-plt.xlabel('Condition', fontsize=14)
-plt.ylabel('Adjusted Rand Index (ARI)', fontsize=14) 
+plt.xlabel('Condition', fontsize=16)
+plt.ylabel('Adjusted Rand Index (ARI)', fontsize=16) 
 plt.title('ARI for Max Distance a transcript can diffuse', fontsize=22)
 # make the legened bigger
 plt.legend(fontsize=12)
@@ -274,8 +274,8 @@ plt.scatter(x_axis1, ari_df_pct['ARI_louvain'], label='Louvain', s=100)
 plt.plot(x_axis1, ari_df_pct['ARI_louvain'], linestyle='-', marker='o')
 plt.scatter(x_axis1, ari_df_pct['ARI_agglomerative'], label='Agglomerative', s=100)
 plt.plot(x_axis1, ari_df_pct['ARI_agglomerative'], linestyle='-', marker='o')
-plt.xlabel('Condition', fontsize=14)
-plt.ylabel('Adjusted Rand Index (ARI)', fontsize=14)
+plt.xlabel('Condition', fontsize=16)
+plt.ylabel('Adjusted Rand Index (ARI)', fontsize=16)
 plt.title('ARI for Total Percentage of transcripts that can diffuse', fontsize=22)
 plt.legend(fontsize=12)
 sns.despine()
@@ -393,35 +393,211 @@ plt.show()
 
 ############################################################################################################
 
+# Extract cluster labels
+gt_clusters = adata_gt.obs['leiden']
+other_clusters = adata_dict["adata_50pct"].obs['leiden']
+
+# Create a contingency table
+contingency = pd.crosstab(gt_clusters, other_clusters)
+
+# Solve the assignment problem (maximize overlap, so minimize negative values)
+row_ind, col_ind = linear_sum_assignment(-contingency.values)
+
+# Create a mapping from other_clusters to gt_clusters
+cluster_mapping = {contingency.columns[col]: contingency.index[row] for row, col in zip(row_ind, col_ind)}
+
+# Map clusters in the second dataset to ground truth clusters
+adata_dict["adata_50pct"].obs['leiden_mapped'] = adata_dict["adata_50pct"].obs['leiden'].map(cluster_mapping)
+
 
 # plot umap for ground truth
 sc.tl.umap(adata_gt)
 sc.tl.umap(adata_dict["adata_50pct"])
 
 # plot umap for ground truth
-sc.pl.umap(adata_gt, color='leiden', palette='tab20', title='Ground Truth with Leiden', show=False)
+sc.pl.umap(adata_gt, color='leiden', palette='tab20', title='Ground Truth with Leiden Clusters', show=False)
 # Customize the legend position
-plt.legend(
-    loc='upper center', 
-    bbox_to_anchor=(0.5, -0.05),  # Position the legend below the plot
-    ncol=4,  # Number of columns for the legend
-    title='Leiden Clusters'  # Optional: Add a title to the legend
-)
+# plt.legend(
+#     loc='upper center', 
+#     bbox_to_anchor=(0.5, -0.05),  # Position the legend below the plot
+#     ncol=4,  # Number of columns for the legend
+#     title='Leiden Clusters'  # Optional: Add a title to the legend
+# )
+sns.despine()
 plt.show()
-
 
 
 # plot umap for 50pct
-sc.pl.umap(adata_dict["adata_50pct"], color='leiden', palette='tab20', title='50pct with Leiden Clusters', show=False)
+sc.pl.umap(adata_dict["adata_50pct"], color='leiden', palette='tab20', title='50pct Lateral Diffusion with Leiden Clusters', show=False)
 # Customize the legend position
-plt.legend(
-    loc='upper center', 
-    bbox_to_anchor=(0.5, -0.05),  # Position the legend below the plot
-    ncol=4,  # Number of columns for the legend
-    title='Leiden Clusters'  # Optional: Add a title to the legend
-)
+# plt.legend(
+#     loc='upper center', 
+#     bbox_to_anchor=(0.5, -0.05),  # Position the legend below the plot
+#     ncol=2,  # Number of columns for the legend
+#     title='Leiden Clusters'  # Optional: Add a title to the legend
+# )
+sns.despine()
 plt.show()
 
 
+
+############################################################################################################
+
+
+### For new sim data ###
+
+
+# get all conditions
+file_paths = [
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_1pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_2pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_4pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_6pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_8pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_10pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_12pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_14pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_16pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_18pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_20pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_30pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_40pct_parallelized.RDS',
+    '/Users/calebhallinan/Desktop/jhu/classes/applied_genomics_final_proj/sim_data/prox_assign/ld_mtx_only_remove_50pct_parallelized.RDS'
+]
+
+
+
+# Dictionary to store processed AnnData objects
+adata_dict = {}
+
+for file_path in file_paths:
+    # Generate a dynamic variable name
+    var_name = f"adata_{Path(file_path).stem.replace('ld_mtx_only_remove_', '').replace('_parallelized', '')}"
+    
+    # Read data and create AnnData object
+    data = read_rds(file_path)
+    adata = sc.AnnData(data.T)
+    adata.obs = metadata.reset_index(drop=True)
+    adata.var = pd.DataFrame(index=range(data.shape[0]))
+    
+    # Preprocessing and clustering
+    sc.pp.log1p(adata)
+    sc.tl.pca(adata, n_comps=30)
+    sc.pp.neighbors(adata, n_neighbors=15, n_pcs=30)
+    sc.tl.leiden(adata)
+    # test more resolutions
+    # sc.tl.leiden(adata, key_added="leiden_res0_25", resolution=0.25)
+    # sc.tl.leiden(adata, key_added="leiden_res0_5", resolution=0.5)
+    # sc.tl.leiden(adata, key_added="leiden_res1", resolution=1.0)
+    # sc.tl.leiden(adata, key_added="leiden_res2", resolution=2.0)
+    sc.tl.louvain(adata)
+    kmeans = KMeans(n_clusters=25, random_state=0).fit(adata.obsm['X_pca'])
+    adata.obs['kmeans'] = kmeans.labels_
+    # perform agglomerative clustering
+    agglomerative = AgglomerativeClustering(n_clusters=25).fit(adata.obsm['X_pca'])
+    adata.obs['agglomerative'] = agglomerative.labels_
+    # perform GMM
+    gmm = GaussianMixture(n_components=25, random_state=0).fit(adata.obsm['X_pca'])
+    adata.obs['gmm'] = gmm.predict(adata.obsm['X_pca'])
+
+    # Save to dictionary
+    adata_dict[var_name] = adata
+
+
+############################################################################################################
+
+
+### compare clustering results ###
+
+
+# Initialize ARI DataFrame
+ari_df = pd.DataFrame(columns=['ARI_leiden', 'ARI_kmeans', 'ARI_louvain', 'ARI_agglomerative'], index=['GT'] + list(adata_dict.keys()))
+
+# Compute ARI for ground truth (self-comparison)
+ari_df.loc['GT', 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata_gt.obs['leiden'])
+ari_df.loc['GT', 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata_gt.obs['kmeans'])
+ari_df.loc['GT', 'ARI_louvain'] = metrics.adjusted_rand_score(adata_gt.obs['louvain'], adata_gt.obs['louvain'])
+ari_df.loc['GT', 'ARI_agglomerative'] = metrics.adjusted_rand_score(adata_gt.obs['agglomerative'], adata_gt.obs['agglomerative'])
+ari_df.loc['GT', 'ARI_gmm'] = metrics.adjusted_rand_score(adata_gt.obs['gmm'], adata_gt.obs['gmm'])
+
+# add new leiden resolutions
+# ari_df.loc['GT', 'ARI_leiden_res0_25'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res0_25'], adata_gt.obs['leiden_res0_25'])
+# ari_df.loc['GT', 'ARI_leiden_res0_5'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res0_5'], adata_gt.obs['leiden_res0_5'])
+# ari_df.loc['GT', 'ARI_leiden_res1'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res1'], adata_gt.obs['leiden_res1'])
+# ari_df.loc['GT', 'ARI_leiden_res2'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res2'], adata_gt.obs['leiden_res2'])
+
+# Compute ARI for each key in the dictionary
+for condition, adata in adata_dict.items():
+    ari_df.loc[condition, 'ARI_leiden'] = metrics.adjusted_rand_score(adata_gt.obs['leiden'], adata.obs['leiden'])
+    ari_df.loc[condition, 'ARI_kmeans'] = metrics.adjusted_rand_score(adata_gt.obs['kmeans'], adata.obs['kmeans'])
+    ari_df.loc[condition, 'ARI_louvain'] = metrics.adjusted_rand_score(adata_gt.obs['louvain'], adata.obs['louvain'])
+    ari_df.loc[condition, 'ARI_agglomerative'] = metrics.adjusted_rand_score(adata_gt.obs['agglomerative'], adata.obs['agglomerative'])
+    ari_df.loc[condition, 'ARI_gmm'] = metrics.adjusted_rand_score(adata_gt.obs['gmm'], adata.obs['gmm'])
+    # # add new leiden resolutions
+    # ari_df.loc[condition, 'ARI_leiden_res0_25'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res0_25'], adata.obs['leiden_res0_25'])
+    # ari_df.loc[condition, 'ARI_leiden_res0_5'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res0_5'], adata.obs['leiden_res0_5'])
+    # ari_df.loc[condition, 'ARI_leiden_res1'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res1'], adata.obs['leiden_res1'])
+    # ari_df.loc[condition, 'ARI_leiden_res2'] = metrics.adjusted_rand_score(adata_gt.obs['leiden_res2'], adata.obs['leiden_res2'])
+
+# Print the ARI DataFrame
+print(ari_df)
+
+# change the index to be more readable
+ari_df.index = [
+    'Ground Truth',
+    '1pct',
+    '2pct',
+    '4pct',
+    '6pct',
+    '8pct',
+    '10pct',
+    '12pct',
+    '14pct',
+    '16pct',
+    '18pct',
+    '20pct',
+    '30pct',
+    '40pct',
+    '50pct'
+]
+
+# reorder to make 1p01max and 1p05 after Ground Truth
+ari_df = ari_df.reindex(['Ground Truth', '1pct', '2pct', '4pct',
+                         '6pct', '8pct', '10pct', '12pct', '14pct', '16pct', '18pct', '20pct', '30pct', '40pct', '50pct'])
+
+# separate the ari for max and pct
+ari_df_max = ari_df.loc[ari_df.index.str.contains('max') | ari_df.index.str.contains('Truth')]
+ari_df_pct = ari_df.loc[ari_df.index.str.contains('pct') | ari_df.index.str.contains('Truth')]
+
+
+############################################################################################################
+
+
+### plot ARI ###
+
+x_axis1 = [0, 1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 23, 26, 29]
+
+# Plot ARI for kmeans as a scatterplot with line connecting the points
+plt.figure(figsize=(14, 6))
+plt.scatter(x_axis1, ari_df_pct['ARI_leiden'], label='Leiden', s=100)
+plt.plot(x_axis1, ari_df_pct['ARI_leiden'], linestyle='-', marker='o')
+plt.scatter(x_axis1, ari_df_pct['ARI_kmeans'], label='K-means', s=100)
+plt.plot(x_axis1, ari_df_pct['ARI_kmeans'], linestyle='-', marker='o')
+plt.scatter(x_axis1, ari_df_pct['ARI_louvain'], label='Louvain', s=100)
+plt.plot(x_axis1, ari_df_pct['ARI_louvain'], linestyle='-', marker='o')
+plt.scatter(x_axis1, ari_df_pct['ARI_agglomerative'], label='Agglomerative', s=100)
+plt.plot(x_axis1, ari_df_pct['ARI_agglomerative'], linestyle='-', marker='o')
+plt.xlabel('Condition', fontsize=16)
+plt.ylabel('Adjusted Rand Index (ARI)', fontsize=16)
+plt.title('ARI for Total Percentage of transcripts that can diffuse', fontsize=22)
+plt.legend(fontsize=12)
+sns.despine()
+# make size of text larger
+plt.yticks(fontsize=12)
+plt.ylim(.4,1.02)
+plt.xticks(ticks=x_axis1, labels=ari_df_pct.index, rotation=90,fontsize=12)
+
+
+############################################################################################################
 
 
